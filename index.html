@@ -54,6 +54,14 @@ html, body {
   justify-content: center;
 }
 
+@media (orientation: portrait) {
+  #title-cycle {
+    width: 70vw;
+    max-width: 70vw;
+    aspect-ratio: 1 / 1;
+  }
+}
+
 #title-cycle img {
   position: absolute;
   width: 100%;
@@ -170,8 +178,8 @@ pickSound();
 const titleCycle = document.getElementById('title-cycle');
 const titleImgEls = {};
 
-// Create one <img> per title (orditext only)
-STYLES_LAND.forEach(filename => {
+// Create one <img> per title (orditext + ipadphonetext)
+[...STYLES_LAND, ...STYLES_PORT].forEach(filename => {
   const el = document.createElement('img');
   el.src = filename;
   el.alt = '';
@@ -179,9 +187,11 @@ STYLES_LAND.forEach(filename => {
   titleCycle.appendChild(el);
 });
 
-// Shuffled queue — orditext uniquement, taille aléatoire à chaque affichage
-const CYCLE_POOL = ['orditext1.png','orditext2.png','orditext3.png','orditext4.png'];
-const SIZE_RANGE = [30, 40, 52, 65, 78, 90]; // vw possibles
+// Shuffled queue — images selon orientation, taille aléatoire à chaque affichage
+const CYCLE_POOL_LAND = ['orditext1.png','orditext2.png','orditext3.png','orditext4.png'];
+const CYCLE_POOL_PORT = ['ipadphonetext1.png','ipadphonetext2.png','ipadphonetext3.png','ipadphonetext4.png'];
+const SIZE_RANGE_LAND = [30, 40, 52, 65, 78, 90]; // vw possibles
+const SIZE_RANGE_PORT = [40, 50, 60, 70]; // vw possibles en portrait (carré)
 
 function shuffled(arr) {
   const a = [...arr];
@@ -196,10 +206,14 @@ let cycleQueue = [];
 let lastTitle   = null;
 let activeTitleEl = null;
 
+function getCyclePool() { return isPortrait() ? CYCLE_POOL_PORT : CYCLE_POOL_LAND; }
+function getSizeRange() { return isPortrait() ? SIZE_RANGE_PORT : SIZE_RANGE_LAND; }
+
 function nextFromQueue() {
-  // Refill quand vide, mais s'assurer que le 1er ne répète pas le dernier affiché
-  if (cycleQueue.length === 0) {
-    cycleQueue = shuffled(CYCLE_POOL);
+  const pool = getCyclePool();
+  // Refill quand vide ou quand l'orientation a changé (pool différent)
+  if (cycleQueue.length === 0 || !pool.includes(cycleQueue[0])) {
+    cycleQueue = shuffled(pool);
     // Si le 1er du nouveau shuffle == le dernier affiché, on le décale à la fin
     if (cycleQueue[0] === lastTitle && cycleQueue.length > 1) {
       cycleQueue.push(cycleQueue.shift());
@@ -214,7 +228,8 @@ function showNextTitle() {
   lastTitle = filename;
   activeTitleEl = titleImgEls[filename];
   // taille aléatoire à chaque apparition
-  const size = SIZE_RANGE[Math.floor(Math.random() * SIZE_RANGE.length)];
+  const sizeRange = getSizeRange();
+  const size = sizeRange[Math.floor(Math.random() * sizeRange.length)];
   titleCycle.style.width = size + 'vw';
   activeTitleEl.classList.add('active');
 }
@@ -325,8 +340,9 @@ async function startCamera() {
 }
 
 startScreen.addEventListener('click', startCamera);
-window.addEventListener('resize', pickRandom);
+window.addEventListener('resize', () => { pickRandom(); cycleQueue = []; showNextTitle(); });
 
 </script>
+
 </body>
 </html>
